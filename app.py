@@ -1,979 +1,970 @@
-from flask import Flask, render_template_string
+from flask import Flask, request
+import json
 
 app = Flask(__name__)
 
-# Source logo SVGs — brand-representative marks (not generic 2-letter squares)
-SOURCE_LOGOS = {
-    "Hugging Face Blog": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#FF9D00"/>
-      <ellipse cx="14.5" cy="18" rx="3" ry="4" fill="#fff"/>
-      <ellipse cx="25.5" cy="18" rx="3" ry="4" fill="#fff"/>
-      <ellipse cx="14.5" cy="18.5" rx="1.5" ry="2" fill="#2d1b00"/>
-      <ellipse cx="25.5" cy="18.5" rx="1.5" ry="2" fill="#2d1b00"/>
-      <path d="M13 26 Q20 31 27 26" stroke="#2d1b00" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-      <path d="M10 13 C10 10 13 8 14 11" stroke="#2d1b00" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <path d="M30 13 C30 10 27 8 26 11" stroke="#2d1b00" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-    </svg>""",
-
-    "Google DeepMind": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#fff"/>
-      <circle cx="20" cy="20" r="20" fill="url(#gd_grad)"/>
-      <defs><linearGradient id="gd_grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-        <stop stop-color="#4285F4"/><stop offset="0.33" stop-color="#34A853"/><stop offset="0.66" stop-color="#FBBC05"/><stop offset="1" stop-color="#EA4335"/>
-      </linearGradient></defs>
-      <text x="20" y="26" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="18" fill="#fff">G</text>
-    </svg>""",
-
-    "Anthropic": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#C97E4D"/>
-      <path d="M14 28 L20 12 L26 28" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      <path d="M16.5 23 L23.5 23" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>""",
-
-    "Meta AI": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#0866FF"/>
-      <path d="M10 20 C10 15.5 12.5 13 15 13 C17 13 18.5 14.5 20 17 C21.5 14.5 23 13 25 13 C27.5 13 30 15.5 30 20 C30 24.5 27.5 27 25 27 C23 27 21.5 25.5 20 23 C18.5 25.5 17 27 15 27 C12.5 27 10 24.5 10 20Z" stroke="#fff" stroke-width="2" fill="none"/>
-    </svg>""",
-
-    "Microsoft AI": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#00A4EF"/>
-      <rect x="11" y="11" width="8" height="8" rx="1" fill="#F25022"/>
-      <rect x="21" y="11" width="8" height="8" rx="1" fill="#7FBA00"/>
-      <rect x="11" y="21" width="8" height="8" rx="1" fill="#00A4EF"/>
-      <rect x="21" y="21" width="8" height="8" rx="1" fill="#FFB900"/>
-    </svg>""",
-
-    "Stanford HAI": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#8C1515"/>
-      <text x="20" y="26" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="18" fill="#fff">S</text>
-    </svg>""",
-
-    "MIT Technology Review": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#A31F34"/>
-      <text x="20" y="24" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" letter-spacing="0.5" fill="#fff">MIT</text>
-    </svg>""",
-
-    "Nature": """<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="20" fill="#1A6E3C"/>
-      <path d="M20 30 L20 18" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-      <path d="M20 22 C20 22 14 19 13 13 C13 13 20 14 20 22Z" fill="#fff"/>
-      <path d="M20 18 C20 18 26 15 27 9 C27 9 20 10 20 18Z" fill="#b8e6c8"/>
-    </svg>""",
-}
-
-NEWS_ITEMS = [
+NEWS_ARTICLES = [
     {
-        "headline": "Hugging Face Releases Major Transformers Update with Multi-Modal Agent Support",
-        "source": "Hugging Face Blog",
-        "source_color": "#FF9D00",
-        "url": "https://huggingface.co/blog",
-        "snippet": "The latest Transformers library update brings native multi-modal agent pipelines, improved quantization, and expanded model hub integrations for production deployments.",
-        "timestamp": "2 hours ago",
-        "category": "Open Source",
-        "category_color": "#FF9D00",
+        "id": "a1",
+        "category": "tech",
+        "headline": "OpenAI Ships GPT-5 With Native Reasoning and 1M-Token Context Window",
+        "source": "OpenAI Blog",
+        "snippet": "The latest flagship model introduces chain-of-thought reasoning as a first-class primitive, alongside a one-million token context window enabling full codebase ingestion in a single pass.",
+        "timestamp": "1H AGO",
+        "read_time": "3 MIN",
     },
     {
-        "headline": "Google DeepMind's Gemini 2.0 Sets New Benchmarks in Code Generation",
-        "source": "Google DeepMind",
-        "source_color": "#4285F4",
-        "url": "https://deepmind.google/",
-        "snippet": "Gemini 2.0 outperforms GPT-4 on HumanEval and MBPP benchmarks, with particular strength in multi-step reasoning and repository-level code understanding tasks.",
-        "timestamp": "4 hours ago",
-        "category": "Research",
-        "category_color": "#4285F4",
+        "id": "a2",
+        "category": "world",
+        "headline": "EU AI Act Enforcement Begins — First Fines Issued to High-Risk Biometric Systems",
+        "source": "Reuters",
+        "snippet": "European regulators issued the first wave of penalties under the AI Act, targeting biometric surveillance systems deployed without required conformity assessments and human oversight logs.",
+        "timestamp": "3H AGO",
+        "read_time": "5 MIN",
     },
     {
-        "headline": "Anthropic Releases Claude 4 with Improved Safety Guardrails and Extended Context",
-        "source": "Anthropic",
-        "source_color": "#C97E4D",
-        "url": "https://anthropic.com/news",
-        "snippet": "Claude 4 introduces a 500K token context window and significantly enhanced Constitutional AI techniques, reducing harmful output rates by 40% compared to Claude 3.",
-        "timestamp": "6 hours ago",
-        "category": "Safety",
-        "category_color": "#C97E4D",
+        "id": "a3",
+        "category": "tech",
+        "headline": "Apple Intelligence Expands to 40 Languages with On-Device Model Upgrades",
+        "source": "9to5Mac",
+        "snippet": "iOS 19.2 ships upgraded on-device models for Siri, Writing Tools, and Image Playground, with hardware-optimised inference pathways reducing generation latency by 60% on A18 chips.",
+        "timestamp": "5H AGO",
+        "read_time": "4 MIN",
     },
     {
-        "headline": "Meta's Llama 4 Open-Source Model Outperforms Previous Closed-Source Rivals",
-        "source": "Meta AI",
-        "source_color": "#0866FF",
-        "url": "https://ai.meta.com/blog/",
-        "snippet": "Meta's Llama 4 70B model achieves state-of-the-art performance on MMLU and HellaSwag, available under a permissive commercial license for businesses with under 700M users.",
-        "timestamp": "8 hours ago",
-        "category": "Open Source",
-        "category_color": "#0866FF",
+        "id": "a4",
+        "category": "business",
+        "headline": "Goldman Sachs: AI Automation to Add $7 Trillion to Global GDP by 2030",
+        "source": "Financial Times",
+        "snippet": "A new Goldman Sachs research report projects AI-driven automation could lift global labour productivity by 1.5 percentage points annually, compounding over the next five years.",
+        "timestamp": "7H AGO",
+        "read_time": "6 MIN",
     },
     {
-        "headline": "Microsoft Integrates AI Agents Deeply Into Office 365 Productivity Suite",
-        "source": "Microsoft AI",
-        "source_color": "#00A4EF",
-        "url": "https://blogs.microsoft.com/ai/",
-        "snippet": "Copilot agents can now autonomously draft, schedule, and follow up on emails, analyze spreadsheets, and generate presentation slides with minimal human input.",
-        "timestamp": "10 hours ago",
-        "category": "Industry",
-        "category_color": "#00A4EF",
+        "id": "a5",
+        "category": "design",
+        "headline": "Nothing Phone 3 Renders Leaked — Dot Matrix Interface Evolves Beyond the Back Panel",
+        "source": "The Verge",
+        "snippet": "Exclusive renders of the Nothing Phone 3 reveal an evolved Ndot system with adaptive dot-matrix displays extending throughout OS-level interface elements, from the lock screen to notification drawers.",
+        "timestamp": "9H AGO",
+        "read_time": "3 MIN",
     },
     {
-        "headline": "Stanford HAI Report: AI Adoption in Enterprise Doubles Year-Over-Year",
-        "source": "Stanford HAI",
-        "source_color": "#8C1515",
-        "url": "https://hai.stanford.edu/news",
-        "snippet": "The 2026 AI Index shows enterprise AI adoption reached 78% of Fortune 500 companies, with natural language processing and computer vision leading deployment categories.",
-        "timestamp": "1 day ago",
-        "category": "Research",
-        "category_color": "#8C1515",
+        "id": "a6",
+        "category": "world",
+        "headline": "Huawei Ships Kirin 9030, Closing the Gap with TSMC 3nm Through Advanced Packaging",
+        "source": "SCMP",
+        "snippet": "Huawei's Kirin 9030 achieves 5nm-equivalent performance through multi-die chiplet packaging, marking a milestone in China's domestic semiconductor self-sufficiency push.",
+        "timestamp": "11H AGO",
+        "read_time": "7 MIN",
     },
     {
-        "headline": "EU AI Act Enforcement Begins: Companies Rush to Audit High-Risk Systems",
-        "source": "MIT Technology Review",
-        "source_color": "#A31F34",
-        "url": "https://www.technologyreview.com/topic/artificial-intelligence/",
-        "snippet": "With the EU AI Act now in effect, compliance teams are scrambling to classify their systems, conduct mandatory conformity assessments, and register high-risk AI deployments.",
-        "timestamp": "1 day ago",
-        "category": "Policy",
-        "category_color": "#A31F34",
+        "id": "a7",
+        "category": "tech",
+        "headline": "Anthropic Claude 4 Sets New SOTA on Multi-Step Reasoning — 92.3% on GPQA Diamond",
+        "source": "Anthropic Research",
+        "snippet": "Claude 4 tops ARC-AGI-2 and GPQA Diamond benchmarks, with researchers attributing gains to Constitutional AI 2.0 training and improved self-critique loops during post-training.",
+        "timestamp": "13H AGO",
+        "read_time": "5 MIN",
     },
     {
-        "headline": "New Research Shows AI Can Design Novel Proteins for Drug Discovery at Scale",
-        "source": "Nature",
-        "source_color": "#1A6E3C",
-        "url": "https://www.nature.com/subjects/machine-learning",
-        "snippet": "AlphaFold-derived protein design tools have enabled researchers to generate and wet-lab validate 150+ novel enzymes targeting antibiotic-resistant bacteria in a single study.",
-        "timestamp": "2 days ago",
-        "category": "Science",
-        "category_color": "#1A6E3C",
+        "id": "a8",
+        "category": "business",
+        "headline": "Microsoft AI Division Hits $50B Annual Revenue Run Rate, Beats Analyst Guidance by 12%",
+        "source": "Bloomberg",
+        "snippet": "Microsoft's AI Cloud segment exceeded analyst consensus driven by Azure OpenAI enterprise adoption and Copilot seat growth now exceeding 400 million monthly active users globally.",
+        "timestamp": "15H AGO",
+        "read_time": "4 MIN",
     },
 ]
 
-
-HTML = """<!DOCTYPE html>
-<html lang="en">
+HTML_TEMPLATE = r"""<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI News</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<script>
+(function(){var t=localStorage.getItem('ndotnews:theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N·FEED — AI News</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&family=DotGothic16&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+button{background:none;border:none;cursor:pointer;font:inherit;color:inherit;}
+input{font:inherit;}
+a{color:inherit;text-decoration:none;}
 
-    :root {
-      --bg: #F0F2F5;
-      --surface: #fff;
-      --border: #E4E8EF;
-      --text-primary: #0F172A;
-      --text-secondary: #64748B;
-      --text-muted: #94A3B8;
-      --accent-default: #6366F1;
-      --header-h: 72px;
-      --radius-card: 14px;
-      --radius-btn: 10px;
-    }
+:root{
+  --accent:#D71921;
+  --tr:0.2s ease;
+  --bg:#ffffff;
+  --surface:#f5f5f5;
+  --text-1:#000000;
+  --text-2:#555555;
+  --text-3:#999999;
+  --border:#e0e0e0;
+  --border-2:#eeeeee;
+  --skel-a:#ebebeb;
+  --skel-b:#f8f8f8;
+}
+[data-theme="dark"]{
+  --bg:#000000;
+  --surface:#111111;
+  --text-1:#ffffff;
+  --text-2:#aaaaaa;
+  --text-3:#555555;
+  --border:#222222;
+  --border-2:#191919;
+  --skel-a:#1a1a1a;
+  --skel-b:#2a2a2a;
+}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text-primary);
-      min-height: 100vh;
-    }
+html,body{
+  height:100%;
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text-1);
+  transition:background var(--tr),color var(--tr);
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
 
-    /* ── HEADER ────────────────────────────────────────── */
-    .app-header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
+.dot{font-family:'Doto','DotGothic16',monospace;letter-spacing:0.06em;}
 
-    .header-inner {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 0 1.25rem;
-      height: var(--header-h);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
+@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+.skel{
+  background:linear-gradient(90deg,var(--skel-a) 25%,var(--skel-b) 50%,var(--skel-a) 75%);
+  background-size:1200px 100%;
+  animation:shimmer 1.6s linear infinite;
+}
 
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-shrink: 0;
-    }
+/* ── LAYOUT ────────────────────────────── */
+.app{display:flex;height:100vh;overflow:hidden;}
 
-    /* AI logo badge */
-    .ai-badge {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 8px rgba(99,102,241,0.45);
-      flex-shrink: 0;
-    }
+/* ── LEFT RAIL ─────────────────────────── */
+.rail{
+  display:none;
+  width:220px;
+  flex-shrink:0;
+  flex-direction:column;
+  border-right:1px solid var(--border);
+  padding:28px 20px 20px;
+  gap:32px;
+  transition:border-color var(--tr);
+}
+@media(min-width:768px){.rail{display:flex;}}
 
-    .ai-badge svg {
-      width: 22px;
-      height: 22px;
-    }
+.rail-logo{
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:0.1em;
+  color:var(--text-1);
+}
+.rail-logo .dot-red{color:var(--accent);}
 
-    .brand-text h1 {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-    }
+.rail-nav{display:flex;flex-direction:column;gap:2px;flex:1;}
 
-    .brand-text .tagline {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      line-height: 1;
-      margin-top: 1px;
-    }
+.rail-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:10px;letter-spacing:0.1em;
+  color:var(--text-3);
+  border:1px solid transparent;
+  transition:color var(--tr),border-color var(--tr);
+}
+.rail-item.active{color:var(--text-1);border-color:var(--border);}
+.rail-item:hover:not(.active){color:var(--text-2);}
 
-    /* Toolbar */
-    .header-toolbar {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      justify-content: flex-end;
-    }
+.rail-divider{height:1px;background:var(--border);margin:6px 0;transition:background var(--tr);}
 
-    .search-wrap {
-      position: relative;
-      flex: 1;
-      max-width: 280px;
-    }
+/* ── MAIN ──────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
-    .search-wrap svg {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 15px;
-      height: 15px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
+/* ── MOBILE HEADER ─────────────────────── */
+.mob-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  transition:border-color var(--tr);
+}
+@media(min-width:768px){.mob-header{display:none;}}
 
-    .search-input {
-      width: 100%;
-      height: 36px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-btn);
-      background: var(--bg);
-      padding: 0 0.75rem 0 2.1rem;
-      font-size: 0.82rem;
-      color: var(--text-primary);
-      outline: none;
-      transition: border-color 0.15s;
-    }
+.mob-logo{
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:17px;font-weight:700;letter-spacing:0.1em;
+}
+.mob-logo .dot-red{color:var(--accent);}
 
-    .search-input:focus {
-      border-color: #6366F1;
-      background: #fff;
-    }
+.mob-actions{display:flex;align-items:center;gap:14px;}
 
-    .search-input::placeholder { color: var(--text-muted); }
+/* ── DESKTOP TOPBAR ────────────────────── */
+.desk-top{
+  display:none;align-items:center;gap:16px;
+  padding:16px 28px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  transition:border-color var(--tr);
+}
+@media(min-width:768px){.desk-top{display:flex;}}
 
-    .toolbar-btn {
-      width: 36px;
-      height: 36px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-btn);
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--text-secondary);
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      position: relative;
-      flex-shrink: 0;
-    }
+/* ── SEARCH ────────────────────────────── */
+.search-wrap{flex:1;position:relative;}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;}
+.search-inp{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text-1);
+  padding:9px 14px 9px 36px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:11px;letter-spacing:0.08em;
+  outline:none;
+  transition:border-color var(--tr),background var(--tr),color var(--tr);
+}
+.search-inp::placeholder{color:var(--text-3);}
+.search-inp:focus{border-color:var(--text-2);}
 
-    .toolbar-btn:hover, .toolbar-btn.active {
-      background: #EEF2FF;
-      border-color: #6366F1;
-      color: #6366F1;
-    }
+/* ── MOBILE SEARCH ─────────────────────── */
+.mob-search{
+  padding:10px 18px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  transition:border-color var(--tr);
+}
+@media(min-width:768px){.mob-search{display:none;}}
 
-    .toolbar-btn svg {
-      width: 16px;
-      height: 16px;
-    }
+/* ── DARK MODE TOGGLE ──────────────────── */
+.toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;flex-shrink:0;user-select:none;}
+.toggle-label{
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:9px;letter-spacing:0.12em;
+  color:var(--text-2);white-space:nowrap;
+  transition:color var(--tr);
+}
+.toggle-track{
+  width:34px;height:18px;
+  border:1px solid var(--border);
+  position:relative;
+  background:var(--surface);
+  flex-shrink:0;
+  transition:border-color var(--tr),background var(--tr);
+}
+.toggle-knob{
+  position:absolute;top:3px;left:3px;
+  width:10px;height:10px;
+  background:var(--text-3);
+  transition:left 0.2s ease,background 0.2s ease;
+}
+[data-theme="dark"] .toggle-knob{left:19px;background:var(--accent);}
 
-    /* Filter dropdown */
-    .filter-dropdown {
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 0.5rem;
-      min-width: 160px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-      display: none;
-      z-index: 30;
-    }
+/* ── DOT MENU ICON ─────────────────────── */
+.dot-menu{
+  display:grid;
+  grid-template-columns:repeat(3,4px);
+  grid-template-rows:repeat(3,4px);
+  gap:3px;padding:3px;
+  color:var(--text-1);
+}
+.dot-menu span{width:4px;height:4px;background:currentColor;border-radius:50%;}
 
-    .filter-dropdown.open { display: block; }
+/* ── TABS BAR ──────────────────────────── */
+.tabs{
+  display:flex;
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;
+  flex-shrink:0;
+  transition:border-color var(--tr);
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex-shrink:0;
+  padding:11px 18px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:10px;letter-spacing:0.1em;
+  color:var(--text-3);
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+  transition:color var(--tr),border-color var(--tr);
+}
+.tab.active{color:var(--text-1);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--text-2);}
+@media(min-width:768px){.tab{padding:13px 22px;}}
 
-    .filter-option {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.45rem 0.6rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      transition: background 0.12s;
-    }
+/* ── FEED AREA ─────────────────────────── */
+.feed{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:72px;}
+@media(min-width:768px){.feed{padding-bottom:20px;}}
 
-    .filter-option:hover { background: var(--bg); }
-    .filter-option.selected { color: #6366F1; background: #EEF2FF; }
+/* ── CARD ──────────────────────────────── */
+.card{border-bottom:1px solid var(--border);padding:18px 18px 14px;transition:border-color var(--tr);}
+@media(min-width:768px){.card{padding:22px 28px 18px;}}
 
-    .filter-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+.card-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.card-source{
+  display:flex;align-items:center;gap:6px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:8px;letter-spacing:0.12em;
+  color:var(--text-3);transition:color var(--tr);
+}
+.dot-red-sm{width:5px;height:5px;background:var(--accent);border-radius:50%;flex-shrink:0;}
+.card-time{
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:8px;letter-spacing:0.08em;color:var(--text-3);
+  transition:color var(--tr);
+}
 
-    /* ── FEED CONTAINER ───────────────────────────────── */
-    .feed-wrap {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 1.25rem 1.25rem 3rem;
-    }
+.card-body{display:flex;gap:14px;align-items:flex-start;}
+.card-text{flex:1;min-width:0;}
+.card-headline{
+  font-size:14px;font-weight:500;line-height:1.35;
+  color:var(--text-1);margin-bottom:5px;
+  transition:color var(--tr);
+}
+@media(min-width:768px){.card-headline{font-size:15px;}}
+.card-snippet{
+  font-size:12px;font-weight:300;line-height:1.55;
+  color:var(--text-2);transition:color var(--tr);
+}
 
-    /* ── SKELETON LOADING ─────────────────────────────── */
-    .skeleton-card {
-      background: var(--surface);
-      border-radius: var(--radius-card);
-      padding: 1.1rem 1.25rem;
-      margin-bottom: 0.75rem;
-      border-left: 4px solid #E2E8F0;
-    }
+.card-thumb{
+  width:68px;height:68px;flex-shrink:0;
+  border:1px solid var(--border);overflow:hidden;
+  transition:border-color var(--tr);
+}
+@media(min-width:768px){.card-thumb{width:84px;height:84px;}}
+.card-thumb svg{display:block;width:100%;height:100%;}
 
-    .skel {
-      background: linear-gradient(90deg, #EEF2FF 25%, #E2E8EF 50%, #EEF2FF 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 6px;
-    }
+.card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+.card-cat{
+  display:flex;align-items:center;gap:5px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:8px;letter-spacing:0.12em;color:var(--text-3);
+  transition:color var(--tr);
+}
+.cat-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;}
+.bk-btn{padding:3px;color:var(--text-3);transition:color var(--tr);line-height:1;}
+.bk-btn.saved{color:var(--text-1);}
+.bk-btn:hover{color:var(--text-1);}
 
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
+/* ── SKELETON CARD ─────────────────────── */
+.sk-line{height:10px;border-radius:1px;margin-bottom:7px;}
+.sk-s{width:28%}.sk-m{width:55%}.sk-l{width:82%}.sk-f{width:100%}
+.sk-thumb{width:68px;height:68px;flex-shrink:0;border-radius:1px;}
+@media(min-width:768px){.sk-thumb{width:84px;height:84px;}}
 
-    .skel-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-    .skel-avatar { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
-    .skel-lines { flex: 1; }
-    .skel-line { height: 11px; margin-bottom: 6px; }
-    .skel-line.short { width: 40%; }
-    .skel-line.medium { width: 65%; }
-    .skel-line.full { width: 100%; }
-    .skel-headline { height: 14px; width: 90%; margin-bottom: 8px; }
-    .skel-snippet { height: 11px; margin-bottom: 5px; }
+/* ── STATE VIEWS ───────────────────────── */
+.state-view{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 28px;text-align:center;gap:18px;
+}
+.state-glyph{color:var(--text-3);transition:color var(--tr);}
+.state-hl{
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:18px;letter-spacing:0.15em;
+  color:var(--text-1);transition:color var(--tr);
+}
+.state-copy{
+  font-size:12px;font-weight:300;line-height:1.65;
+  color:var(--text-2);max-width:280px;transition:color var(--tr);
+}
+.cta-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.cta-p{
+  background:var(--accent);color:#fff;
+  padding:11px 22px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:10px;letter-spacing:0.12em;
+  transition:opacity 0.2s;
+}
+.cta-p:hover{opacity:0.85;}
+.cta-s{
+  background:transparent;color:var(--text-1);
+  padding:11px 22px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:10px;letter-spacing:0.12em;
+  border:1px solid var(--border);
+  transition:border-color var(--tr),color var(--tr);
+}
+.cta-s:hover{border-color:var(--text-2);}
 
-    /* ── ILLUSTRATED STATES ───────────────────────────── */
-    .state-panel {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 1.5rem;
-      text-align: center;
-    }
+/* ── CONNECTION HELP ───────────────────── */
+.conn-help{
+  border:1px solid var(--border);padding:14px 18px;
+  text-align:left;width:100%;max-width:300px;
+  transition:border-color var(--tr);
+}
+.conn-help.hidden{display:none;}
+.conn-title{
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:9px;letter-spacing:0.1em;color:var(--text-2);margin-bottom:10px;
+  transition:color var(--tr);
+}
+.conn-row{
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;color:var(--text-2);line-height:1.8;
+  transition:color var(--tr);
+}
+.conn-dot{width:3px;height:3px;background:var(--text-3);border-radius:50%;flex-shrink:0;}
 
-    .state-illustration { margin-bottom: 1.5rem; }
+/* ── BOTTOM NAV ────────────────────────── */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;
+  border-top:1px solid var(--border);background:var(--bg);
+  display:flex;z-index:100;
+  transition:border-color var(--tr),background var(--tr);
+}
+@media(min-width:768px){.bnav{display:none;}}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:10px 4px 14px;
+  font-family:'Doto','DotGothic16',monospace;
+  font-size:7px;letter-spacing:0.1em;color:var(--text-3);
+  transition:color var(--tr);
+}
+.bnav-item.active{color:var(--text-1);}
+.bnav-item:hover:not(.active){color:var(--text-2);}
 
-    .state-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 0.4rem;
-    }
-
-    .state-body {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      max-width: 280px;
-      line-height: 1.55;
-      margin-bottom: 1.25rem;
-    }
-
-    .state-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      background: linear-gradient(135deg, #6366F1, #8B5CF6);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 0.6rem 1.35rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.15s;
-      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
-    }
-
-    .state-cta:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    .state-cta.secondary {
-      background: var(--surface);
-      color: var(--text-secondary);
-      border: 1.5px solid var(--border);
-      box-shadow: none;
-    }
-
-    /* ── FEED CARDS ───────────────────────────────────── */
-    .feed { display: flex; flex-direction: column; gap: 0.75rem; }
-
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius-card);
-      border-left: 4px solid var(--card-accent, #6366F1);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
-      overflow: hidden;
-      transition: box-shadow 0.18s, transform 0.18s;
-    }
-
-    .card:hover {
-      box-shadow: 0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
-      transform: translateY(-2px);
-    }
-
-    .card[data-hidden="true"] { display: none; }
-
-    .card-link {
-      display: block;
-      padding: 1rem 1.25rem 0.75rem;
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.875rem;
-    }
-
-    /* Source logo — real brand mark */
-    .source-logo {
-      flex-shrink: 0;
-      width: 44px;
-      height: 44px;
-      border-radius: 11px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1.5px solid var(--border);
-      background: var(--bg);
-    }
-
-    .source-logo svg {
-      width: 44px;
-      height: 44px;
-    }
-
-    .card-body { flex: 1; min-width: 0; }
-
-    .card-meta-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.35rem;
-    }
-
-    .source-name {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: var(--card-accent, #6366F1);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .card-badges {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      flex-shrink: 0;
-    }
-
-    .category-badge {
-      font-size: 0.64rem;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 20px;
-      background: color-mix(in srgb, var(--card-accent, #6366F1) 12%, transparent);
-      color: var(--card-accent, #6366F1);
-      white-space: nowrap;
-    }
-
-    .timestamp {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
-
-    .headline {
-      font-size: 0.95rem;
-      font-weight: 700;
-      line-height: 1.45;
-      color: var(--text-primary);
-      margin-bottom: 0.4rem;
-      transition: color 0.15s;
-    }
-
-    .card:hover .headline { color: var(--card-accent, #6366F1); }
-
-    .snippet {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 0 1.25rem 0.75rem;
-    }
-
-    .read-more {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      text-decoration: none;
-    }
-
-    .read-more svg {
-      width: 11px;
-      height: 11px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    /* ── NO-RESULTS INLINE ────────────────────────────── */
-    .no-results {
-      text-align: center;
-      padding: 2.5rem 1rem;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      display: none;
-    }
-
-    /* ── RESPONSIVE ───────────────────────────────────── */
-    @media (max-width: 540px) {
-      .header-inner { padding: 0 1rem; }
-      .brand-text h1 { font-size: 1rem; }
-      .brand-text .tagline { display: none; }
-      .search-wrap { max-width: none; }
-      .feed-wrap { padding: 1rem 0.75rem 2rem; }
-      .card-link { padding: 0.875rem 1rem 0.625rem; }
-      .card-footer { padding: 0 1rem 0.625rem; }
-      .source-logo { width: 38px; height: 38px; border-radius: 9px; }
-      .source-logo svg { width: 38px; height: 38px; }
-      .headline { font-size: 0.88rem; }
-      .snippet { font-size: 0.78rem; }
-    }
-  </style>
+.hidden{display:none!important;}
+</style>
 </head>
 <body>
 
-<header class="app-header">
-  <div class="header-inner">
-    <div class="header-brand">
-      <!-- AI logo badge -->
-      <div class="ai-badge" aria-hidden="true">
-        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M11 2 L13.2 8.2 L19.8 8.2 L14.6 12.2 L16.8 18.4 L11 14.4 L5.2 18.4 L7.4 12.2 L2.2 8.2 L8.8 8.2 Z" fill="white" opacity="0.9"/>
-          <circle cx="11" cy="11" r="2.5" fill="white"/>
+<div class="app">
+  <!-- LEFT RAIL (desktop) -->
+  <nav class="rail" id="rail">
+    <div class="rail-logo dot">N<span class="dot-red">·</span>FEED</div>
+    <div class="rail-nav">
+      <button class="rail-item active" data-nav="feed">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="3" cy="3" r="1.5" fill="currentColor"/>
+          <circle cx="7" cy="3" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="3" r="1.5" fill="currentColor"/>
+          <circle cx="3" cy="7" r="1.5" fill="currentColor"/>
+          <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="7" r="1.5" fill="currentColor"/>
+          <circle cx="3" cy="11" r="1.5" fill="currentColor"/>
+          <circle cx="7" cy="11" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
         </svg>
-      </div>
-      <div class="brand-text">
-        <h1>AI News</h1>
-        <p class="tagline">Latest from the world of artificial intelligence</p>
-      </div>
+        FEED
+      </button>
+      <button class="rail-item" data-nav="discover">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1"/>
+          <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+          <circle cx="7" cy="2" r="1" fill="currentColor"/>
+          <circle cx="12" cy="7" r="1" fill="currentColor"/>
+          <circle cx="7" cy="12" r="1" fill="currentColor"/>
+          <circle cx="2" cy="7" r="1" fill="currentColor"/>
+        </svg>
+        DISCOVER
+      </button>
+      <button class="rail-item" data-nav="saved">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="3" cy="2" r="1" fill="currentColor"/>
+          <circle cx="7" cy="2" r="1" fill="currentColor"/>
+          <circle cx="11" cy="2" r="1" fill="currentColor"/>
+          <circle cx="3" cy="6" r="1" fill="currentColor"/>
+          <circle cx="11" cy="6" r="1" fill="currentColor"/>
+          <circle cx="3" cy="10" r="1" fill="currentColor"/>
+          <circle cx="11" cy="10" r="1" fill="currentColor"/>
+          <circle cx="5" cy="13" r="1" fill="currentColor"/>
+          <circle cx="9" cy="13" r="1" fill="currentColor"/>
+          <circle cx="7" cy="11" r="1.5" fill="currentColor"/>
+        </svg>
+        SAVED
+      </button>
+      <button class="rail-item" data-nav="profile">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="4" r="2.5" stroke="currentColor" stroke-width="1"/>
+          <path d="M2 13 C2 9.5 12 9.5 12 13" stroke="currentColor" stroke-width="1" fill="none"/>
+          <circle cx="7" cy="4" r="1" fill="currentColor"/>
+        </svg>
+        PROFILE
+      </button>
+      <div class="rail-divider"></div>
+      <button class="rail-item" data-nav="settings">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1"/>
+          <circle cx="7" cy="1.5" r="1" fill="currentColor"/>
+          <circle cx="7" cy="12.5" r="1" fill="currentColor"/>
+          <circle cx="12.5" cy="7" r="1" fill="currentColor"/>
+          <circle cx="1.5" cy="7" r="1" fill="currentColor"/>
+          <circle cx="11" cy="3" r="1" fill="currentColor"/>
+          <circle cx="3" cy="11" r="1" fill="currentColor"/>
+          <circle cx="11" cy="11" r="1" fill="currentColor"/>
+          <circle cx="3" cy="3" r="1" fill="currentColor"/>
+        </svg>
+        SETTINGS
+      </button>
+      <button class="rail-item" data-nav="signout">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="3" cy="2" r="1" fill="currentColor"/>
+          <circle cx="3" cy="5" r="1" fill="currentColor"/>
+          <circle cx="3" cy="8" r="1" fill="currentColor"/>
+          <circle cx="3" cy="11" r="1" fill="currentColor"/>
+          <circle cx="6" cy="7" r="1" fill="currentColor"/>
+          <circle cx="9" cy="7" r="1" fill="currentColor"/>
+          <circle cx="12" cy="7" r="1" fill="currentColor"/>
+          <circle cx="10" cy="5" r="1" fill="currentColor"/>
+          <circle cx="10" cy="9" r="1" fill="currentColor"/>
+        </svg>
+        SIGN OUT
+      </button>
     </div>
+  </nav>
 
-    <div class="header-toolbar">
-      <!-- Search -->
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- MOBILE HEADER -->
+    <header class="mob-header">
+      <div class="mob-logo dot">N<span class="dot-red">·</span>FEED</div>
+      <div class="mob-actions">
+        <label class="toggle-wrap" id="toggle-mob" aria-label="Toggle dark mode">
+          <span class="toggle-label dot">DARK MODE</span>
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+        </label>
+        <button class="dot-menu" id="menu-btn" aria-label="Menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- DESKTOP TOPBAR -->
+    <div class="desk-top">
       <div class="search-wrap">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 L14 14"/>
+        <svg class="search-icon" width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M8.5 8.5 L11.5 11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
-        <input
-          class="search-input"
-          type="search"
-          placeholder="Search headlines…"
-          id="search-input"
-          aria-label="Search headlines"
-        />
+        <input type="search" class="search-inp dot" placeholder="SEARCH AI NEWS..." id="search-desk" autocomplete="off" aria-label="Search articles"/>
       </div>
-
-      <!-- Filter -->
-      <button class="toolbar-btn" id="filter-btn" aria-label="Filter by category" title="Filter">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 4h12M4 8h8M6 12h4"/>
-        </svg>
-        <div class="filter-dropdown" id="filter-dropdown">
-          <div class="filter-option selected" data-cat="all">
-            <span class="filter-dot" style="background:#6366F1"></span> All
-          </div>
-          <div class="filter-option" data-cat="Research">
-            <span class="filter-dot" style="background:#4285F4"></span> Research
-          </div>
-          <div class="filter-option" data-cat="Open Source">
-            <span class="filter-dot" style="background:#FF9D00"></span> Open Source
-          </div>
-          <div class="filter-option" data-cat="Safety">
-            <span class="filter-dot" style="background:#C97E4D"></span> Safety
-          </div>
-          <div class="filter-option" data-cat="Industry">
-            <span class="filter-dot" style="background:#00A4EF"></span> Industry
-          </div>
-          <div class="filter-option" data-cat="Policy">
-            <span class="filter-dot" style="background:#A31F34"></span> Policy
-          </div>
-          <div class="filter-option" data-cat="Science">
-            <span class="filter-dot" style="background:#1A6E3C"></span> Science
-          </div>
-        </div>
-      </button>
-
-      <!-- Settings -->
-      <button class="toolbar-btn" id="settings-btn" aria-label="Settings" title="Settings">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="8" r="2.5"/>
-          <path d="M8 1.5 L8 3M8 13 L8 14.5M1.5 8 L3 8M13 8 L14.5 8M3.3 3.3 L4.4 4.4M11.6 11.6 L12.7 12.7M3.3 12.7 L4.4 11.6M11.6 4.4 L12.7 3.3"/>
-        </svg>
-      </button>
+      <label class="toggle-wrap" id="toggle-desk" aria-label="Toggle dark mode">
+        <span class="toggle-label dot">DARK MODE</span>
+        <div class="toggle-track"><div class="toggle-knob"></div></div>
+      </label>
     </div>
-  </div>
-</header>
 
-<div class="feed-wrap">
-
-  <!-- LOADING STATE -->
-  <div id="state-loading">
-    {% for _ in range(4) %}
-    <div class="skeleton-card">
-      <div class="skel-row">
-        <div class="skel skel-avatar"></div>
-        <div class="skel-lines">
-          <div class="skel skel-line short"></div>
-          <div class="skel skel-line medium"></div>
-        </div>
+    <!-- MOBILE SEARCH -->
+    <div class="mob-search">
+      <div class="search-wrap">
+        <svg class="search-icon" width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M8.5 8.5 L11.5 11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <input type="search" class="search-inp dot" placeholder="SEARCH AI NEWS..." id="search-mob" autocomplete="off" aria-label="Search articles"/>
       </div>
-      <div class="skel skel-headline"></div>
-      <div class="skel skel-snippet full"></div>
-      <div class="skel skel-snippet medium" style="width:70%;margin-top:5px"></div>
     </div>
-    {% endfor %}
-  </div>
 
-  <!-- EMPTY STATE -->
-  <div id="state-empty" class="state-panel" hidden>
-    <div class="state-illustration">
-      <!-- Friendly robot SVG illustration -->
-      <svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <!-- Stars / sparkles background -->
-        <circle cx="30" cy="25" r="3" fill="#C7D2FE" opacity="0.7"/>
-        <circle cx="130" cy="35" r="2" fill="#A5B4FC" opacity="0.6"/>
-        <circle cx="145" cy="80" r="2.5" fill="#C7D2FE" opacity="0.5"/>
-        <circle cx="20" cy="100" r="2" fill="#A5B4FC" opacity="0.5"/>
-        <path d="M50 20 L52 16 L54 20 L50 20Z" fill="#C7D2FE" opacity="0.6"/>
-        <path d="M120 18 L122 14 L124 18 L120 18Z" fill="#A5B4FC" opacity="0.6"/>
-
-        <!-- Robot body -->
-        <rect x="52" y="72" width="56" height="52" rx="12" fill="#6366F1"/>
-        <rect x="58" y="78" width="44" height="28" rx="7" fill="#4338CA"/>
-
-        <!-- Antenna -->
-        <rect x="78" y="50" width="4" height="18" rx="2" fill="#818CF8"/>
-        <circle cx="80" cy="47" r="7" fill="#A5B4FC"/>
-        <circle cx="80" cy="47" r="4" fill="#6366F1"/>
-        <circle cx="80" cy="47" r="2" fill="#fff"/>
-
-        <!-- Head -->
-        <rect x="57" y="56" width="46" height="36" rx="13" fill="#818CF8"/>
-
-        <!-- Eyes -->
-        <ellipse cx="70" cy="70" rx="6" ry="6.5" fill="#fff"/>
-        <ellipse cx="90" cy="70" rx="6" ry="6.5" fill="#fff"/>
-        <circle cx="71" cy="71" r="3.5" fill="#4338CA"/>
-        <circle cx="91" cy="71" r="3.5" fill="#4338CA"/>
-        <circle cx="72.5" cy="69.5" r="1.2" fill="#fff"/>
-        <circle cx="92.5" cy="69.5" r="1.2" fill="#fff"/>
-
-        <!-- Mouth — neutral/sad arc -->
-        <path d="M73 81 Q80 78 87 81" stroke="#4338CA" stroke-width="2" stroke-linecap="round" fill="none"/>
-
-        <!-- Arms -->
-        <rect x="36" y="76" width="18" height="8" rx="4" fill="#818CF8"/>
-        <rect x="106" y="76" width="18" height="8" rx="4" fill="#818CF8"/>
-        <circle cx="34" cy="80" r="5" fill="#A5B4FC"/>
-        <circle cx="126" cy="80" r="5" fill="#A5B4FC"/>
-
-        <!-- Legs -->
-        <rect x="62" y="120" width="14" height="22" rx="7" fill="#6366F1"/>
-        <rect x="84" y="120" width="14" height="22" rx="7" fill="#6366F1"/>
-        <rect x="59" y="136" width="20" height="10" rx="5" fill="#4338CA"/>
-        <rect x="81" y="136" width="20" height="10" rx="5" fill="#4338CA"/>
-
-        <!-- Chest panel -->
-        <rect x="66" y="84" width="28" height="14" rx="5" fill="#6366F1"/>
-        <circle cx="74" cy="91" r="2.5" fill="#A5B4FC"/>
-        <circle cx="80" cy="91" r="2.5" fill="#818CF8"/>
-        <circle cx="86" cy="91" r="2.5" fill="#C7D2FE"/>
-      </svg>
+    <!-- TABS -->
+    <div class="tabs" id="tabs" role="tablist" aria-label="News categories">
+      <button class="tab dot active" data-tab="all" role="tab" aria-selected="true">FOR YOU</button>
+      <button class="tab dot" data-tab="tech" role="tab" aria-selected="false">TECH</button>
+      <button class="tab dot" data-tab="world" role="tab" aria-selected="false">WORLD</button>
+      <button class="tab dot" data-tab="business" role="tab" aria-selected="false">BUSINESS</button>
+      <button class="tab dot" data-tab="design" role="tab" aria-selected="false">DESIGN</button>
     </div>
-    <p class="state-title">No news to show yet</p>
-    <p class="state-body">Your AI news feed is empty right now. Check back later or reload to fetch the latest headlines.</p>
-    <button class="state-cta" onclick="reloadFeed()">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M13 2.5 A7 7 0 1 0 14.5 8"/><polyline points="10.5 2 13 2.5 12.5 5"/>
-      </svg>
-      Reload Feed
-    </button>
-  </div>
 
-  <!-- ERROR STATE -->
-  <div id="state-error" class="state-panel" hidden>
-    <div class="state-illustration">
-      <!-- Broken/sad robot SVG illustration -->
-      <svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <!-- Warning lightning bolts -->
-        <path d="M25 30 L20 45 L27 45 L22 60 L32 42 L25 42 L30 30Z" fill="#FCD34D" opacity="0.7"/>
-        <path d="M135 20 L131 32 L136 32 L132 44 L140 30 L135 30 L139 20Z" fill="#FCD34D" opacity="0.6"/>
+    <!-- FEED -->
+    <div class="feed" id="feed" role="main" aria-live="polite"></div>
 
-        <!-- Robot body (tilted slightly, distressed) -->
-        <rect x="52" y="72" width="56" height="52" rx="12" fill="#EF4444" transform="rotate(-3 80 98)"/>
-        <rect x="58" y="78" width="44" height="28" rx="7" fill="#DC2626" transform="rotate(-3 80 92)"/>
-
-        <!-- Cracked antenna -->
-        <line x1="80" y1="50" x2="78" y2="56" stroke="#F87171" stroke-width="3" stroke-linecap="round"/>
-        <line x1="78" y1="56" x2="82" y2="60" stroke="#F87171" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="80" cy="47" r="7" fill="#FCA5A5"/>
-        <circle cx="80" cy="47" r="4" fill="#EF4444"/>
-        <!-- X on antenna ball -->
-        <path d="M77 44 L83 50M83 44 L77 50" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-
-        <!-- Head (tilted) -->
-        <rect x="57" y="56" width="46" height="36" rx="13" fill="#F87171" transform="rotate(-3 80 74)"/>
-
-        <!-- X eyes -->
-        <path d="M64 65 L71 72M71 65 L64 72" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M84 65 L91 72M91 65 L84 72" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-
-        <!-- Sad mouth -->
-        <path d="M70 82 Q80 76 90 82" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
-
-        <!-- Arms drooping -->
-        <rect x="34" y="80" width="20" height="7" rx="3.5" fill="#F87171" transform="rotate(20 44 83)"/>
-        <rect x="106" y="80" width="20" height="7" rx="3.5" fill="#F87171" transform="rotate(-20 116 83)"/>
-
-        <!-- Legs (wonky) -->
-        <rect x="62" y="120" width="14" height="20" rx="7" fill="#EF4444" transform="rotate(-5 69 130)"/>
-        <rect x="84" y="120" width="14" height="20" rx="7" fill="#EF4444" transform="rotate(5 91 130)"/>
-
-        <!-- Sparks / error lines -->
-        <path d="M102 62 L108 55" stroke="#FCD34D" stroke-width="2" stroke-linecap="round"/>
-        <path d="M105 70 L113 68" stroke="#FCD34D" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M100 77 L107 78" stroke="#FCD34D" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <p class="state-title">Couldn't load feed</p>
-    <p class="state-body">Something went wrong while loading the AI news feed. Check your connection and try again.</p>
-    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;justify-content:center">
-      <button class="state-cta" onclick="reloadFeed()">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2.5 A7 7 0 1 0 14.5 8"/><polyline points="10.5 2 13 2.5 12.5 5"/>
-        </svg>
-        Try Again
-      </button>
-    </div>
-  </div>
-
-  <!-- SUCCESS / FEED STATE -->
-  <div id="state-feed" hidden>
-    <div class="feed" id="feed-list">
-      {% for item in news %}
-      <article
-        class="card"
-        style="--card-accent: {{ item.source_color }}"
-        data-category="{{ item.category }}"
-        data-headline="{{ item.headline | lower }}"
-        data-source="{{ item.source | lower }}"
-        data-hidden="false"
-      >
-        <a class="card-link" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
-          <div class="card-top">
-            <div class="source-logo" aria-label="{{ item.source }} logo">
-              {{ item.logo_svg | safe }}
-            </div>
-            <div class="card-body">
-              <div class="card-meta-row">
-                <span class="source-name">{{ item.source }}</span>
-                <div class="card-badges">
-                  <span class="category-badge">{{ item.category }}</span>
-                  <span class="timestamp">{{ item.timestamp }}</span>
-                </div>
-              </div>
-              <div class="headline">{{ item.headline }}</div>
-              <div class="snippet">{{ item.snippet }}</div>
-            </div>
-          </div>
-        </a>
-        <div class="card-footer">
-          <a class="read-more" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
-            opens in new tab
-            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-          </a>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
-    <div class="no-results" id="no-results">No headlines match your search.</div>
-  </div>
-
+  </main>
 </div>
 
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bnav" id="bnav">
+  <button class="bnav-item dot active" data-nav="feed">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="4" cy="4" r="2" fill="currentColor"/>
+      <circle cx="9" cy="4" r="2" fill="currentColor"/>
+      <circle cx="14" cy="4" r="2" fill="currentColor"/>
+      <circle cx="4" cy="9" r="2" fill="currentColor"/>
+      <circle cx="9" cy="9" r="2" fill="currentColor"/>
+      <circle cx="14" cy="9" r="2" fill="currentColor"/>
+      <circle cx="4" cy="14" r="2" fill="currentColor"/>
+      <circle cx="9" cy="14" r="2" fill="currentColor"/>
+      <circle cx="14" cy="14" r="2" fill="currentColor"/>
+    </svg>
+    FEED
+  </button>
+  <button class="bnav-item dot" data-nav="discover">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.2"/>
+      <circle cx="9" cy="9" r="2" fill="currentColor"/>
+      <circle cx="9" cy="3" r="1" fill="currentColor"/>
+      <circle cx="15" cy="9" r="1" fill="currentColor"/>
+      <circle cx="9" cy="15" r="1" fill="currentColor"/>
+      <circle cx="3" cy="9" r="1" fill="currentColor"/>
+    </svg>
+    DISCOVER
+  </button>
+  <button class="bnav-item dot" data-nav="saved">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="4" cy="2" r="1.2" fill="currentColor"/>
+      <circle cx="9" cy="2" r="1.2" fill="currentColor"/>
+      <circle cx="14" cy="2" r="1.2" fill="currentColor"/>
+      <circle cx="4" cy="7" r="1.2" fill="currentColor"/>
+      <circle cx="14" cy="7" r="1.2" fill="currentColor"/>
+      <circle cx="4" cy="12" r="1.2" fill="currentColor"/>
+      <circle cx="14" cy="12" r="1.2" fill="currentColor"/>
+      <circle cx="6.5" cy="16" r="1.2" fill="currentColor"/>
+      <circle cx="11.5" cy="16" r="1.2" fill="currentColor"/>
+      <circle cx="9" cy="14" r="1.8" fill="currentColor"/>
+    </svg>
+    SAVED
+  </button>
+  <button class="bnav-item dot" data-nav="profile">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M2 17 C2 12 16 12 16 17" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    </svg>
+    PROFILE
+  </button>
+</nav>
+
 <script>
-  // ── State machine ──────────────────────────────────
-  function showState(name) {
-    ['loading','empty','error','feed'].forEach(function(s) {
-      document.getElementById('state-' + s).hidden = (s !== name);
-    });
+(function(){
+'use strict';
+
+var ARTICLES = __ARTICLES_JSON__;
+var FORCED = '__FORCED_STATE__';
+
+var state = {
+  tab: 'all',
+  query: '',
+  feed: 'loading',
+  nav: 'feed',
+  bookmarks: [],
+  connHelp: false
+};
+
+try { state.bookmarks = JSON.parse(localStorage.getItem('ndotnews:bookmarks') || '[]'); } catch(e) {}
+
+// ── THEME ──────────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('ndotnews:theme', t); } catch(e) {}
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+document.getElementById('toggle-mob').addEventListener('click', function(e){ e.preventDefault(); toggleTheme(); });
+document.getElementById('toggle-desk').addEventListener('click', function(e){ e.preventDefault(); toggleTheme(); });
+
+// ── TABS ───────────────────────────────────
+document.getElementById('tabs').addEventListener('click', function(e) {
+  var tab = e.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.classList.remove('active'); t.setAttribute('aria-selected','false');
+  });
+  tab.classList.add('active'); tab.setAttribute('aria-selected','true');
+  state.tab = tab.dataset.tab;
+  state.query = '';
+  document.getElementById('search-mob').value = '';
+  document.getElementById('search-desk').value = '';
+  if (state.feed !== 'loading') renderFeed();
+});
+
+// ── NAV ────────────────────────────────────
+function setupNav(el) {
+  if (!el) return;
+  el.addEventListener('click', function(e) {
+    var item = e.target.closest('[data-nav]');
+    if (!item) return;
+    var id = item.dataset.nav;
+    state.nav = id;
+    document.querySelectorAll('[data-nav]').forEach(function(n){ n.classList.remove('active'); });
+    document.querySelectorAll('[data-nav="'+id+'"]').forEach(function(n){ n.classList.add('active'); });
+    if (id === 'saved') { renderSaved(); return; }
+    if (id === 'feed') {
+      state.tab = 'all';
+      state.query = '';
+      document.getElementById('search-mob').value = '';
+      document.getElementById('search-desk').value = '';
+      document.querySelectorAll('.tab').forEach(function(t){
+        t.classList.toggle('active', t.dataset.tab === 'all');
+        t.setAttribute('aria-selected', t.dataset.tab === 'all' ? 'true' : 'false');
+      });
+      loadFeed();
+    }
+  });
+}
+setupNav(document.getElementById('rail'));
+setupNav(document.getElementById('bnav'));
+
+// ── SEARCH ─────────────────────────────────
+function onSearch(val) {
+  state.query = val.toLowerCase().trim();
+  var other = document.getElementById(this === document.getElementById('search-mob') ? 'search-desk' : 'search-mob');
+  other.value = val;
+  if (state.feed !== 'loading') renderFeed();
+}
+function bindSearch(id) {
+  var inp = document.getElementById(id);
+  var timer;
+  inp.addEventListener('input', function() {
+    var v = inp.value;
+    clearTimeout(timer);
+    timer = setTimeout(function() { onSearch.call(inp, v); }, 280);
+  });
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { clearTimeout(timer); onSearch.call(inp, inp.value); }
+  });
+}
+bindSearch('search-mob');
+bindSearch('search-desk');
+
+// ── BOOKMARKS ──────────────────────────────
+function saveBookmarks() {
+  try { localStorage.setItem('ndotnews:bookmarks', JSON.stringify(state.bookmarks)); } catch(e) {}
+}
+function toggleBookmark(id) {
+  var idx = state.bookmarks.indexOf(id);
+  if (idx === -1) state.bookmarks.push(id); else state.bookmarks.splice(idx, 1);
+  saveBookmarks();
+  var btn = document.querySelector('[data-bk="'+id+'"]');
+  if (btn) {
+    var saved = state.bookmarks.indexOf(id) !== -1;
+    btn.classList.toggle('saved', saved);
+    btn.innerHTML = bkIcon(saved);
+    btn.setAttribute('aria-label', saved ? 'Remove bookmark' : 'Add bookmark');
+  }
+}
+
+// ── FEED EVENTS (delegated) ─────────────────
+document.getElementById('feed').addEventListener('click', function(e) {
+  var bk = e.target.closest('[data-bk]');
+  if (bk) { e.preventDefault(); toggleBookmark(bk.dataset.bk); return; }
+
+  var retry = e.target.closest('#retry-btn');
+  if (retry) { loadFeed(); return; }
+
+  var conn = e.target.closest('#conn-btn');
+  if (conn) {
+    state.connHelp = !state.connHelp;
+    var help = document.getElementById('conn-help');
+    if (help) help.classList.toggle('hidden', !state.connHelp);
+    return;
   }
 
-  function reloadFeed() {
-    showState('loading');
+  var explore = e.target.closest('#explore-btn');
+  if (explore) {
+    state.tab = 'all';
+    state.query = '';
+    document.getElementById('search-mob').value = '';
+    document.getElementById('search-desk').value = '';
+    document.querySelectorAll('.tab').forEach(function(t){
+      t.classList.toggle('active', t.dataset.tab === 'all');
+      t.setAttribute('aria-selected', t.dataset.tab === 'all' ? 'true' : 'false');
+    });
+    renderFeed();
+    return;
+  }
+});
+
+// ── RENDER HELPERS ──────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function bkIcon(saved) {
+  if (saved) return '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 2H12V14L7.5 10.5L3 14Z" stroke="currentColor" stroke-width="1.2" fill="currentColor"/></svg>';
+  return '<svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 2H12V14L7.5 10.5L3 14Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>';
+}
+
+function thumb(id) {
+  var map = {
+    a1: '<rect width="88" height="88" fill="#2a2a2a"/><circle cx="44" cy="44" r="22" stroke="#555" stroke-width="1.5"/><circle cx="44" cy="44" r="12" stroke="#666" stroke-width="1"/><circle cx="44" cy="44" r="4" fill="#777"/>',
+    a2: '<rect width="88" height="88" fill="#222"/><line x1="10" y1="28" x2="78" y2="28" stroke="#555" stroke-width="1"/><line x1="10" y1="44" x2="78" y2="44" stroke="#444" stroke-width="1"/><line x1="10" y1="60" x2="78" y2="60" stroke="#555" stroke-width="1"/><circle cx="44" cy="44" r="10" stroke="#666" stroke-width="1" fill="none"/>',
+    a3: '<rect width="88" height="88" fill="#1e1e1e"/><path d="M10 44 Q44 12 78 44 Q44 76 10 44Z" stroke="#555" stroke-width="1.5" fill="none"/><circle cx="44" cy="44" r="5" fill="#666"/>',
+    a4: '<rect width="88" height="88" fill="#2d2d2d"/><rect x="14" y="50" width="8" height="28" fill="#444"/><rect x="26" y="36" width="8" height="42" fill="#555"/><rect x="38" y="22" width="8" height="56" fill="#666"/><rect x="50" y="32" width="8" height="46" fill="#555"/><rect x="62" y="44" width="8" height="34" fill="#444"/>',
+    a5: '<rect width="88" height="88" fill="#1a1a1a"/>'+dotGrid(88,88,10,'#3a3a3a'),
+    a6: '<rect width="88" height="88" fill="#282828"/><path d="M12 76 L44 12 L76 76Z" stroke="#555" stroke-width="1.5" fill="none"/><circle cx="44" cy="40" r="4" fill="#666"/>',
+    a7: '<rect width="88" height="88" fill="#1e1e1e"/><circle cx="44" cy="44" r="28" stroke="#444" stroke-width="1"/><circle cx="44" cy="44" r="18" stroke="#555" stroke-width="1"/><circle cx="44" cy="44" r="8" stroke="#666" stroke-width="1"/><circle cx="44" cy="44" r="3" fill="#777"/>',
+    a8: '<rect width="88" height="88" fill="#2a2a2a"/><line x1="10" y1="10" x2="78" y2="78" stroke="#444" stroke-width="1"/><line x1="78" y1="10" x2="10" y2="78" stroke="#444" stroke-width="1"/><circle cx="44" cy="44" r="18" stroke="#666" stroke-width="1.5" fill="none"/>'
+  };
+  var inner = map[id] || '<rect width="88" height="88" fill="#333"/>';
+  return '<svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';
+}
+
+function dotGrid(w, h, spacing, color) {
+  var out = '';
+  for (var x = spacing; x < w; x += spacing)
+    for (var y = spacing; y < h; y += spacing)
+      out += '<circle cx="'+x+'" cy="'+y+'" r="1.5" fill="'+color+'"/>';
+  return out;
+}
+
+function cardHtml(a) {
+  var saved = state.bookmarks.indexOf(a.id) !== -1;
+  return '<article class="card" data-id="'+a.id+'">' +
+    '<div class="card-meta">' +
+      '<div class="card-source dot"><span class="dot-red-sm"></span>AI CURATED · '+esc(a.source.toUpperCase())+'</div>' +
+      '<span class="card-time dot">'+esc(a.timestamp)+' · '+esc(a.read_time)+'</span>' +
+    '</div>' +
+    '<div class="card-body">' +
+      '<div class="card-text">' +
+        '<h2 class="card-headline">'+esc(a.headline)+'</h2>' +
+        '<p class="card-snippet">'+esc(a.snippet)+'</p>' +
+      '</div>' +
+      '<div class="card-thumb">'+thumb(a.id)+'</div>' +
+    '</div>' +
+    '<div class="card-foot">' +
+      '<div class="card-cat dot"><span class="cat-dot"></span>'+esc(a.category.toUpperCase())+'</div>' +
+      '<button class="bk-btn'+(saved?' saved':'')+'" data-bk="'+a.id+'" aria-label="'+(saved?'Remove bookmark':'Add bookmark')+'">'+bkIcon(saved)+'</button>' +
+    '</div>' +
+  '</article>';
+}
+
+function skelCard() {
+  return '<article class="card">' +
+    '<div class="card-meta">' +
+      '<div class="sk-line sk-s skel"></div>' +
+      '<div class="sk-line skel" style="width:18%;height:8px;"></div>' +
+    '</div>' +
+    '<div class="card-body">' +
+      '<div class="card-text">' +
+        '<div class="sk-line sk-l skel"></div>' +
+        '<div class="sk-line sk-f skel"></div>' +
+        '<div class="sk-line sk-m skel"></div>' +
+      '</div>' +
+      '<div class="sk-thumb skel"></div>' +
+    '</div>' +
+    '<div class="card-foot" style="margin-top:10px"><div class="sk-line sk-s skel"></div></div>' +
+  '</article>';
+}
+
+function emptyGlyph() {
+  return '<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="10" y="6" width="40" height="48" stroke="currentColor" stroke-width="1.2"/>' +
+    '<circle cx="21" cy="20" r="2" fill="currentColor"/>' +
+    '<circle cx="30" cy="20" r="2" fill="currentColor"/>' +
+    '<circle cx="39" cy="20" r="2" fill="currentColor"/>' +
+    '<circle cx="21" cy="30" r="2" fill="currentColor"/>' +
+    '<circle cx="30" cy="30" r="2" fill="currentColor"/>' +
+    '<circle cx="39" cy="30" r="2" fill="currentColor"/>' +
+    '<circle cx="21" cy="40" r="2" fill="currentColor"/>' +
+    '<circle cx="30" cy="40" r="2" fill="currentColor"/>' +
+    '<circle cx="39" cy="40" r="2" fill="currentColor"/>' +
+  '</svg>';
+}
+
+function errorGlyph() {
+  return '<svg width="64" height="56" viewBox="0 0 64 56" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M12 38 C10 32 13 24 20 22 C20 14 26 8 34 8 C42 8 48 14 48 22 C54 23 58 28 58 34 C58 42 52 46 46 46 H16 C13 46 10 43 12 38Z" stroke="currentColor" stroke-width="1.2" fill="none"/>' +
+    '<circle cx="24" cy="30" r="2" fill="currentColor"/>' +
+    '<circle cx="32" cy="24" r="2" fill="currentColor"/>' +
+    '<circle cx="40" cy="30" r="2" fill="currentColor"/>' +
+    '<circle cx="24" cy="24" r="2" fill="currentColor"/>' +
+    '<circle cx="40" cy="24" r="2" fill="currentColor"/>' +
+    '<circle cx="32" cy="36" r="2" fill="currentColor"/>' +
+  '</svg>';
+}
+
+function emptyHtml() {
+  return '<div class="state-view" role="status">' +
+    '<div class="state-glyph">'+emptyGlyph()+'</div>' +
+    '<h2 class="state-hl dot">NO NEWS YET</h2>' +
+    '<p class="state-copy">No articles match your current filters. Try a different category or check back soon.</p>' +
+    '<button class="cta-p dot" id="explore-btn">EXPLORE CATEGORIES</button>' +
+  '</div>';
+}
+
+function errorHtml() {
+  return '<div class="state-view" role="alert">' +
+    '<div class="state-glyph">'+errorGlyph()+'</div>' +
+    '<h2 class="state-hl dot">SOMETHING WENT WRONG</h2>' +
+    '<p class="state-copy">We couldn\'t load the latest news. Please check your connection and try again.</p>' +
+    '<div class="cta-row">' +
+      '<button class="cta-p dot" id="retry-btn">RETRY</button>' +
+      '<button class="cta-s dot" id="conn-btn">CHECK CONNECTION</button>' +
+    '</div>' +
+    '<div class="conn-help hidden" id="conn-help">' +
+      '<p class="conn-title dot">CONNECTIVITY GUIDE</p>' +
+      '<div class="conn-row"><span class="conn-dot"></span>Check your Wi-Fi or mobile data connection</div>' +
+      '<div class="conn-row"><span class="conn-dot"></span>Toggle airplane mode on then off</div>' +
+      '<div class="conn-row"><span class="conn-dot"></span>Restart your router or access point</div>' +
+      '<div class="conn-row"><span class="conn-dot"></span>Open your device network settings</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function getFiltered() {
+  return ARTICLES.filter(function(a) {
+    if (state.tab !== 'all' && a.category !== state.tab) return false;
+    if (!state.query) return true;
+    return a.headline.toLowerCase().indexOf(state.query) !== -1 ||
+           a.snippet.toLowerCase().indexOf(state.query) !== -1 ||
+           a.source.toLowerCase().indexOf(state.query) !== -1;
+  });
+}
+
+function renderFeed() {
+  var feed = document.getElementById('feed');
+  if (state.feed === 'loading') {
+    var sk = ''; for (var i=0;i<4;i++) sk += skelCard();
+    feed.innerHTML = sk;
+    return;
+  }
+  if (state.feed === 'error') { state.connHelp = false; feed.innerHTML = errorHtml(); return; }
+  var arts = getFiltered();
+  if (arts.length === 0 || state.feed === 'empty') { feed.innerHTML = emptyHtml(); return; }
+  feed.innerHTML = arts.map(cardHtml).join('');
+}
+
+function renderSaved() {
+  var feed = document.getElementById('feed');
+  var arts = ARTICLES.filter(function(a){ return state.bookmarks.indexOf(a.id) !== -1; });
+  if (arts.length === 0) { feed.innerHTML = emptyHtml(); return; }
+  feed.innerHTML = arts.map(cardHtml).join('');
+}
+
+function loadFeed() {
+  state.feed = 'loading';
+  state.connHelp = false;
+  renderFeed();
+
+  if (FORCED === 'loading') return;
+
+  var target = FORCED || 'success';
+  var start = Date.now();
+
+  setTimeout(function() {
+    var elapsed = Date.now() - start;
+    var wait = Math.max(0, 300 - elapsed);
     setTimeout(function() {
-      showState('feed');
-      applyFilters();
-    }, 700);
-  }
+      if (target === 'error') state.feed = 'error';
+      else if (target === 'empty') state.feed = 'empty';
+      else state.feed = 'success';
+      renderFeed();
+    }, wait);
+  }, 900 + Math.floor(Math.random() * 400));
+}
 
-  // Simulate page load: show loading briefly then reveal feed
-  window.addEventListener('DOMContentLoaded', function() {
-    showState('loading');
-    setTimeout(function() {
-      showState('feed');
-    }, 900);
-  });
+loadFeed();
 
-  // ── Search + Filter ────────────────────────────────
-  var currentCategory = 'all';
-
-  function applyFilters() {
-    var query = document.getElementById('search-input').value.toLowerCase().trim();
-    var cards = document.querySelectorAll('#feed-list .card');
-    var visible = 0;
-    cards.forEach(function(card) {
-      var catMatch = currentCategory === 'all' || card.dataset.category === currentCategory;
-      var searchMatch = !query ||
-        card.dataset.headline.includes(query) ||
-        card.dataset.source.includes(query);
-      var show = catMatch && searchMatch;
-      card.dataset.hidden = show ? 'false' : 'true';
-      if (show) visible++;
-    });
-    document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
-  }
-
-  document.getElementById('search-input').addEventListener('input', applyFilters);
-
-  // ── Filter dropdown ────────────────────────────────
-  var filterBtn = document.getElementById('filter-btn');
-  var filterDropdown = document.getElementById('filter-dropdown');
-
-  filterBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    var isOpen = filterDropdown.classList.toggle('open');
-    filterBtn.classList.toggle('active', isOpen);
-  });
-
-  document.querySelectorAll('.filter-option').forEach(function(opt) {
-    opt.addEventListener('click', function(e) {
-      e.stopPropagation();
-      document.querySelectorAll('.filter-option').forEach(function(o) { o.classList.remove('selected'); });
-      opt.classList.add('selected');
-      currentCategory = opt.dataset.cat;
-      filterDropdown.classList.remove('open');
-      filterBtn.classList.remove('active');
-      applyFilters();
-    });
-  });
-
-  document.addEventListener('click', function() {
-    filterDropdown.classList.remove('open');
-    filterBtn.classList.remove('active');
-  });
-
-  // ── Settings (stub — shows a quick toast) ─────────
-  document.getElementById('settings-btn').addEventListener('click', function() {
-    this.classList.toggle('active');
-  });
+})();
 </script>
 </body>
-</html>"""
-
-
-def _enrich(items):
-    for item in items:
-        item["logo_svg"] = SOURCE_LOGOS.get(item["source"], _fallback_logo(item))
-    return items
-
-
-def _fallback_logo(item):
-    initials = "".join(w[0].upper() for w in item["source"].split()[:2])
-    color = item.get("source_color", "#6366F1")
-    return (
-        f'<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">'
-        f'<circle cx="20" cy="20" r="20" fill="{color}"/>'
-        f'<text x="20" y="25" text-anchor="middle" font-family="Arial,sans-serif" '
-        f'font-weight="700" font-size="13" fill="#fff">{initials}</text></svg>'
-    )
+</html>
+"""
 
 
 @app.route("/")
 def index():
-    return render_template_string(HTML, news=_enrich(NEWS_ITEMS))
-
-
-@app.route("/health")
-def health():
-    return {"status": "ok"}, 200
+    forced = request.args.get("state", "")
+    safe_forced = forced if forced in ("loading", "empty", "error") else "success"
+    html = HTML_TEMPLATE.replace("__ARTICLES_JSON__", json.dumps(NEWS_ARTICLES))
+    html = html.replace("__FORCED_STATE__", safe_forced)
+    return html
 
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-# ELIA-194 rebuild: force fresh docker build cache bust 1779001304
+    app.run(debug=True, port=5000)
