@@ -106,6 +106,7 @@ a{color:inherit;text-decoration:none;}
 
 :root{
   --accent:#D71921;
+  --cta-text:#ffffff;
   --tr:0.2s ease;
   --bg:#ffffff;
   --surface:#f5f5f5;
@@ -391,7 +392,7 @@ html,body{
 }
 .cta-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
 .cta-p{
-  background:var(--accent);color:#fff;
+  background:var(--accent);color:var(--cta-text);
   padding:11px 22px;
   font-family:'Doto','DotGothic16',monospace;
   font-size:10px;letter-spacing:0.12em;
