@@ -977,6 +977,7 @@ function openDetail(id) {
   var saved = state.bookmarks.indexOf(id) !== -1;
   var dbtn = document.getElementById('detail-bk-btn');
   dbtn.className = 'bk-btn' + (saved ? ' saved' : '');
+  dbtn.setAttribute('data-bk', id);
   dbtn.innerHTML = bkIcon(saved);
   dbtn.setAttribute('aria-label', saved ? 'Remove bookmark' : 'Add bookmark');
   dbtn.onclick = function(e) { e.stopPropagation(); toggleBookmark(id); };
@@ -1003,6 +1004,7 @@ function openDetail(id) {
 
 function closeDetail() {
   document.getElementById('detail-overlay').classList.add('hidden');
+  document.getElementById('detail-bk-btn').removeAttribute('data-bk');
   state.detailId = null;
   // restore feed scroll position
   requestAnimationFrame(function() {
@@ -1167,7 +1169,8 @@ function dotGrid(w, h, spacing, color) {
 
 function cardHtml(a) {
   var saved = state.bookmarks.indexOf(a.id) !== -1;
-  return '<article class="card" data-id="'+a.id+'" role="button" tabindex="0" aria-label="Read article: '+esc(a.headline)+'">' +
+  var id = a.id;
+  return '<article class="card" data-id="'+id+'" role="button" tabindex="0" aria-label="Read article: '+esc(a.headline)+'" onclick="if(!event.target.closest(\'[data-bk]\'))window.__nfOpen(\''+id+'\')">' +
     '<div class="card-meta">' +
       '<div class="card-source dot"><span class="dot-red-sm"></span>AI CURATED · '+esc(a.source.toUpperCase())+'</div>' +
       '<span class="card-time dot">'+esc(a.timestamp)+' · '+esc(a.read_time)+'</span>' +
@@ -1328,6 +1331,9 @@ function loadFeed() {
 }
 
 loadFeed();
+
+// expose openDetail for inline onclick attributes on dynamically-rendered cards
+window.__nfOpen = openDetail;
 
 })();
 </script>
