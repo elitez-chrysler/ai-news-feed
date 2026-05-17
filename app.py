@@ -4,9 +4,9 @@ app = Flask(__name__)
 
 NEWS_ITEMS = [
     {
-        "headline": "OpenAI Launches GPT-5 with Enhanced Reasoning and Multimodal Capabilities",
-        "source": "OpenAI Blog",
-        "url": "https://openai.com/blog",
+        "headline": "Hugging Face Releases Major Transformers Update with Multi-Modal Agent Support",
+        "source": "Hugging Face Blog",
+        "url": "https://huggingface.co/blog",
     },
     {
         "headline": "Google DeepMind's Gemini 2.0 Sets New Benchmarks in Code Generation",
